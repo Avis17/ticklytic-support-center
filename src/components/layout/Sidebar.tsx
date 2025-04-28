@@ -15,7 +15,8 @@ import {
   MessageSquare,
   Plus,
   Menu,
-  X
+  X,
+  Bell
 } from "lucide-react";
 
 interface SidebarProps {
@@ -69,6 +70,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
       title: "Knowledge Base",
       icon: FileText,
       href: "/knowledge-base",
+      adminOnly: false,
+    },
+    {
+      title: "Notifications",
+      icon: Bell,
+      href: "/notifications",
       adminOnly: false,
     },
     {

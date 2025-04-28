@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, updateDoc, collection, addDoc, query, where, orderBy, getDocs, Timestamp } from "firebase/firestore";
@@ -42,7 +41,6 @@ const TicketDetail = () => {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [availableAgents, setAvailableAgents] = useState<{id: string, name: string}[]>([]);
   
-  // Get ticket data and comments
   useEffect(() => {
     const fetchTicketData = async () => {
       if (!ticketId) return;
@@ -70,7 +68,6 @@ const TicketDetail = () => {
             tags: ticketData.tags || [],
           });
           
-          // Fetch comments
           await fetchComments(ticketSnap.id);
         } else {
           toast({
@@ -92,7 +89,6 @@ const TicketDetail = () => {
       }
     };
     
-    // Fetch available agents for assignment
     const fetchAvailableAgents = async () => {
       try {
         const usersRef = collection(db, "users");
@@ -162,7 +158,6 @@ const TicketDetail = () => {
       setUpdatingStatus(true);
       const ticketRef = doc(db, "tickets", ticket.id);
       
-      // Use explicit type casting to ensure newStatus is a valid TicketStatus
       const validStatus = newStatus as TicketStatus;
       
       await updateDoc(ticketRef, {
@@ -181,7 +176,6 @@ const TicketDetail = () => {
         description: `Ticket status changed to ${newStatus.replace('_', ' ')}.`,
       });
       
-      // Add system comment for the status change
       await addComment(`Ticket status changed to ${newStatus.replace('_', ' ')}.`, true);
     } catch (error) {
       console.error("Error updating status: ", error);
@@ -202,7 +196,6 @@ const TicketDetail = () => {
       setUpdatingStatus(true);
       const ticketRef = doc(db, "tickets", ticket.id);
       
-      // Find agent name
       const selectedAgent = availableAgents.find(agent => agent.id === agentId);
       
       await updateDoc(ticketRef, {
@@ -225,7 +218,6 @@ const TicketDetail = () => {
         description: `Ticket assigned to ${selectedAgent?.name || "Unknown Agent"}.`,
       });
       
-      // Add system comment for the assignment
       await addComment(`Ticket assigned to ${selectedAgent?.name || "Unknown Agent"}.`, true);
     } catch (error) {
       console.error("Error assigning agent: ", error);
@@ -246,7 +238,6 @@ const TicketDetail = () => {
       setUpdatingStatus(true);
       const ticketRef = doc(db, "tickets", ticket.id);
       
-      // Use explicit type casting to ensure newPriority is a valid TicketPriority
       const validPriority = newPriority as TicketPriority;
       
       await updateDoc(ticketRef, {
@@ -265,7 +256,6 @@ const TicketDetail = () => {
         description: `Ticket priority changed to ${newPriority}.`,
       });
       
-      // Add system comment for the priority change
       await addComment(`Ticket priority changed to ${newPriority}.`, true);
     } catch (error) {
       console.error("Error updating priority: ", error);
@@ -304,7 +294,6 @@ const TicketDetail = () => {
       
       setComments([...comments, newComment]);
       
-      // Also update the ticket's updatedAt field
       await updateDoc(doc(db, "tickets", ticket.id), {
         updatedAt: Timestamp.now(),
       });
@@ -331,7 +320,6 @@ const TicketDetail = () => {
   const formatDate = (timestamp: any) => {
     if (!timestamp) return 'N/A';
     
-    // Convert Firestore timestamp or ISO string to JS date
     const date = timestamp instanceof Timestamp 
       ? timestamp.toDate() 
       : new Date(timestamp);
@@ -410,7 +398,6 @@ const TicketDetail = () => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Ticket details panel */}
         <div className="md:col-span-2 space-y-6">
           <Card>
             <CardHeader>
@@ -433,7 +420,6 @@ const TicketDetail = () => {
             </CardContent>
           </Card>
           
-          {/* Comments section */}
           <Card>
             <CardHeader>
               <CardTitle>Comments</CardTitle>
@@ -502,7 +488,6 @@ const TicketDetail = () => {
           </Card>
         </div>
         
-        {/* Ticket actions panel */}
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -558,7 +543,7 @@ const TicketDetail = () => {
                     <SelectValue placeholder="Assign agent" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
+                    <SelectItem value="_unassigned">Unassigned</SelectItem>
                     {availableAgents.map((agent) => (
                       <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>
                     ))}
