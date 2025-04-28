@@ -1,10 +1,12 @@
 
 export interface User {
   id: string;
+  uid?: string;
   name: string;
   email: string;
   role: string;
   createdAt: string;
+  availability?: string;
 }
 
 export type TicketPriority = 'low' | 'normal' | 'high' | 'critical';
@@ -60,4 +62,26 @@ export interface DashboardStats {
     date: string;
     count: number;
   }[];
+}
+
+export interface CompanySettings {
+  companyName: string;
+  companyEmail: string;
+  companyLogo?: string;
+  categories: string[];
+  priorities: {
+    id: TicketPriority;
+    name: string;
+    color: string;
+  }[];
+  autoResponse?: {
+    enabled: boolean;
+    message: string;
+  };
+}
+
+export interface Agent extends User {
+  availability: string;
+  assignedTickets?: number;
+  resolvedTickets?: number;
 }

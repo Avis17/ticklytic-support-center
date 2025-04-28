@@ -17,6 +17,11 @@ import NotFound from "@/pages/NotFound";
 
 // Authenticated Pages
 import Dashboard from "@/pages/Dashboard";
+import Tickets from "@/pages/Tickets";
+import NewTicket from "@/pages/NewTicket";
+import TicketDetail from "@/pages/TicketDetail";
+import Agents from "@/pages/Agents";
+import Settings from "@/pages/Settings";
 import PrivateRoute from "@/components/auth/PrivateRoute";
 
 const queryClient = new QueryClient();
@@ -38,8 +43,9 @@ const App = () => (
             <Route element={<PrivateRoute />}>
               <Route element={<MainLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/tickets" element={<Dashboard />} /> {/* Placeholder until implemented */}
-                <Route path="/tickets/new" element={<Dashboard />} /> {/* Placeholder until implemented */}
+                <Route path="/tickets" element={<Tickets />} />
+                <Route path="/tickets/new" element={<NewTicket />} />
+                <Route path="/tickets/:ticketId" element={<TicketDetail />} />
                 <Route path="/customer-portal" element={<Dashboard />} /> {/* Placeholder until implemented */}
                 <Route path="/reports" element={<Dashboard />} /> {/* Placeholder until implemented */}
                 <Route path="/knowledge-base" element={<Dashboard />} /> {/* Placeholder until implemented */}
@@ -50,9 +56,9 @@ const App = () => (
             {/* Admin Only Routes */}
             <Route element={<PrivateRoute requiredRole="admin" />}>
               <Route element={<MainLayout />}>
-                <Route path="/agents" element={<Dashboard />} /> {/* Placeholder until implemented */}
-                <Route path="/categories" element={<Dashboard />} /> {/* Placeholder until implemented */}
-                <Route path="/settings" element={<Dashboard />} /> {/* Placeholder until implemented */}
+                <Route path="/agents" element={<Agents />} />
+                <Route path="/categories" element={<Dashboard />} /> {/* Using Settings page for this now */}
+                <Route path="/settings" element={<Settings />} />
               </Route>
             </Route>
 

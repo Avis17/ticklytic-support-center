@@ -18,7 +18,7 @@ interface AuthContextType {
   userRole: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string) => Promise<User>; // Updated return type to match implementation
+  signUp: (email: string, password: string, name: string) => Promise<User>; 
   logout: () => Promise<void>;
   googleLogin: () => Promise<void>;
 }
