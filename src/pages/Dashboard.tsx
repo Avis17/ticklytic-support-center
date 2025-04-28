@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { DashboardStats } from "@/types";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
-import { AreaChart, BarChart, PieChart } from "@/components/ui/chart";
+import { AreaChart, BarChart, PieChart } from "@/components/ui/charts"; // Updated import path
 import { Badge } from "@/components/ui/badge";
 import { ArrowUp, ArrowDown, Clock } from "lucide-react";
 
