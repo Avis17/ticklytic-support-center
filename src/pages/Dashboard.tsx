@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { DashboardStats } from "@/types";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
-import { AreaChart, BarChart, PieChart } from "@/components/ui/charts"; // Updated import path
+import { AreaChart, BarChart, PieChart } from "@/components/ui/charts";
 import { Badge } from "@/components/ui/badge";
 import { ArrowUp, ArrowDown, Clock } from "lucide-react";
 
@@ -43,7 +42,6 @@ const Dashboard = () => {
     ],
   });
 
-  // In a real application, you'd fetch this data from Firestore
   useEffect(() => {
     // This is a placeholder for actual data fetching
     // In a production app, you would fetch real data from Firestore here

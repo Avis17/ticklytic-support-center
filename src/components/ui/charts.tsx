@@ -52,44 +52,46 @@ export const AreaChart = ({
   }, {});
 
   return (
-    <ChartContainer config={config} height={height}>
-      <RechartsAreaChart data={data}>
-        <defs>
-          {categories.map((category, i) => (
-            <linearGradient
-              key={`gradient-${category}`}
-              id={`gradient-${category}`}
-              x1="0"
-              y1="0"
-              x2="0"
-              y2="1"
-            >
-              <stop offset="5%" stopColor={colors[i % colors.length]} stopOpacity={0.8} />
-              <stop offset="95%" stopColor={colors[i % colors.length]} stopOpacity={0.2} />
-            </linearGradient>
-          ))}
-        </defs>
-        {showXAxis && <XAxis dataKey={index} />}
-        {showYAxis && <YAxis />}
-        <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-        <Tooltip
-          formatter={(value: number) => [valueFormatter(value)]}
-          labelFormatter={(value) => `${value}`}
-        />
-        {showLegend && <Legend />}
-        {categories.map((category, i) => (
-          <Area
-            key={`area-${category}`}
-            type="monotone"
-            dataKey={category}
-            stroke={colors[i % colors.length]}
-            fillOpacity={1}
-            fill={`url(#gradient-${category})`}
-            strokeWidth={2}
+    <div style={{ height: `${height}px` }}>
+      <ChartContainer config={config}>
+        <RechartsAreaChart data={data}>
+          <defs>
+            {categories.map((category, i) => (
+              <linearGradient
+                key={`gradient-${category}`}
+                id={`gradient-${category}`}
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <stop offset="5%" stopColor={colors[i % colors.length]} stopOpacity={0.8} />
+                <stop offset="95%" stopColor={colors[i % colors.length]} stopOpacity={0.2} />
+              </linearGradient>
+            ))}
+          </defs>
+          {showXAxis && <XAxis dataKey={index} />}
+          {showYAxis && <YAxis />}
+          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+          <Tooltip
+            formatter={(value: number) => [valueFormatter(value)]}
+            labelFormatter={(value) => `${value}`}
           />
-        ))}
-      </RechartsAreaChart>
-    </ChartContainer>
+          {showLegend && <Legend />}
+          {categories.map((category, i) => (
+            <Area
+              key={`area-${category}`}
+              type="monotone"
+              dataKey={category}
+              stroke={colors[i % colors.length]}
+              fillOpacity={1}
+              fill={`url(#gradient-${category})`}
+              strokeWidth={2}
+            />
+          ))}
+        </RechartsAreaChart>
+      </ChartContainer>
+    </div>
   );
 };
 
@@ -116,26 +118,28 @@ export const BarChart = ({
   }, {});
 
   return (
-    <ChartContainer config={config} height={height}>
-      <RechartsBarChart data={data}>
-        {showXAxis && <XAxis dataKey={index} />}
-        {showYAxis && <YAxis />}
-        <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-        <Tooltip
-          formatter={(value: number) => [valueFormatter(value)]}
-          labelFormatter={(value) => `${value}`}
-        />
-        {showLegend && <Legend />}
-        {categories.map((category, i) => (
-          <Bar
-            key={`bar-${category}`}
-            dataKey={category}
-            fill={colors[i % colors.length]}
-            radius={[4, 4, 0, 0]}
+    <div style={{ height: `${height}px` }}>
+      <ChartContainer config={config}>
+        <RechartsBarChart data={data}>
+          {showXAxis && <XAxis dataKey={index} />}
+          {showYAxis && <YAxis />}
+          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+          <Tooltip
+            formatter={(value: number) => [valueFormatter(value)]}
+            labelFormatter={(value) => `${value}`}
           />
-        ))}
-      </RechartsBarChart>
-    </ChartContainer>
+          {showLegend && <Legend />}
+          {categories.map((category, i) => (
+            <Bar
+              key={`bar-${category}`}
+              dataKey={category}
+              fill={colors[i % colors.length]}
+              radius={[4, 4, 0, 0]}
+            />
+          ))}
+        </RechartsBarChart>
+      </ChartContainer>
+    </div>
   );
 };
 
@@ -158,24 +162,26 @@ export const PieChart = ({
   }, {});
 
   return (
-    <ChartContainer config={config} height={height}>
-      <RechartsPieChart>
-        <Tooltip formatter={(value: number) => [valueFormatter(value)]} />
-        <Legend />
-        <Pie
-          data={data}
-          cx="50%"
-          cy="50%"
-          labelLine={false}
-          outerRadius={80}
-          fill="#8884d8"
-          dataKey="value"
-        >
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-          ))}
-        </Pie>
-      </RechartsPieChart>
-    </ChartContainer>
+    <div style={{ height: `${height}px` }}>
+      <ChartContainer config={config}>
+        <RechartsPieChart>
+          <Tooltip formatter={(value: number) => [valueFormatter(value)]} />
+          <Legend />
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            outerRadius={80}
+            fill="#8884d8"
+            dataKey="value"
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+            ))}
+          </Pie>
+        </RechartsPieChart>
+      </ChartContainer>
+    </div>
   );
 };
