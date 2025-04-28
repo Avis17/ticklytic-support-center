@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, updateDoc, collection, addDoc, query, where, orderBy, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
-import { Ticket, TicketComment } from "@/types";
+import { Ticket, TicketComment, TicketStatus, TicketPriority } from "@/types";
 import {
   Card,
   CardContent,
@@ -162,14 +162,17 @@ const TicketDetail = () => {
       setUpdatingStatus(true);
       const ticketRef = doc(db, "tickets", ticket.id);
       
+      // Use explicit type casting to ensure newStatus is a valid TicketStatus
+      const validStatus = newStatus as TicketStatus;
+      
       await updateDoc(ticketRef, {
-        status: newStatus,
+        status: validStatus,
         updatedAt: Timestamp.now(),
       });
       
       setTicket({
         ...ticket,
-        status: newStatus,
+        status: validStatus,
         updatedAt: Timestamp.now().toDate().toISOString(),
       });
       
@@ -243,14 +246,17 @@ const TicketDetail = () => {
       setUpdatingStatus(true);
       const ticketRef = doc(db, "tickets", ticket.id);
       
+      // Use explicit type casting to ensure newPriority is a valid TicketPriority
+      const validPriority = newPriority as TicketPriority;
+      
       await updateDoc(ticketRef, {
-        priority: newPriority,
+        priority: validPriority,
         updatedAt: Timestamp.now(),
       });
       
       setTicket({
         ...ticket,
-        priority: newPriority,
+        priority: validPriority,
         updatedAt: Timestamp.now().toDate().toISOString(),
       });
       

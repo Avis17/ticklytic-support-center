@@ -195,7 +195,22 @@ const Settings = () => {
     try {
       setSaving(true);
       const settingsRef = doc(db, "settings", "general");
-      await updateDoc(settingsRef, settingsData);
+      
+      // Convert the settingsData to a plain object with no nested structure
+      // This fixes the Firebase updateDoc type error
+      const flattenedData = {
+        "companyInfo.name": settingsData.companyInfo.name,
+        "companyInfo.email": settingsData.companyInfo.email,
+        "companyInfo.phone": settingsData.companyInfo.phone,
+        "companyInfo.website": settingsData.companyInfo.website,
+        "companyInfo.address": settingsData.companyInfo.address,
+        "categories": settingsData.categories,
+        "priorities": settingsData.priorities,
+        "autoResponseEnabled": settingsData.autoResponseEnabled,
+        "autoResponseMessage": settingsData.autoResponseMessage,
+      };
+      
+      await updateDoc(settingsRef, flattenedData);
       
       toast({
         title: "Settings saved",
