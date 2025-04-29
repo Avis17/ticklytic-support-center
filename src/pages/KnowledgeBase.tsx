@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -28,7 +27,8 @@ import {
   orderBy, 
   doc, 
   writeBatch,
-  addDoc
+  addDoc,
+  setDoc
 } from "firebase/firestore";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -90,7 +90,6 @@ const KnowledgeBase: React.FC = () => {
     };
 
     // If the knowledge_base collection doesn't exist or is empty, seed it with dummy data
-    // This is for demonstration purposes in a new setup
     const seedKnowledgeBase = async () => {
       try {
         const articlesRef = collection(db, "knowledge_base");
@@ -130,13 +129,13 @@ const KnowledgeBase: React.FC = () => {
             },
           ];
 
-          // Add dummy articles to the database
-          const batch = writeBatch(db);
-          DUMMY_ARTICLES.forEach(article => {
-            const newDocRef = doc(collection(db, "knowledge_base"));
-            batch.set(newDocRef, article);
-          });
-          await batch.commit();
+          // Add dummy articles to the database - use addDoc instead to avoid potential issues
+          for (const article of DUMMY_ARTICLES) {
+            await addDoc(collection(db, "knowledge_base"), {
+              ...article,
+              createdAt: new Date().toISOString()
+            });
+          }
           console.log("Knowledge base seeded with sample data");
           
           // After seeding, fetch the articles
