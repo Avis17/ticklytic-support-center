@@ -30,7 +30,7 @@ const Index = () => {
               className="border-white text-white hover:bg-white/10"
               asChild
             >
-              <Link to="/customer-portal">Submit a Ticket</Link>
+              <Link to="/submit-ticket">Submit a Ticket</Link>
             </Button>
           </div>
         </div>
@@ -182,7 +182,7 @@ const Index = () => {
                 <ul className="space-y-2">
                   <li><a href="#" className="text-gray-400 hover:text-white">Contact</a></li>
                   <li><a href="#" className="text-gray-400 hover:text-white">Knowledge Base</a></li>
-                  <li><Link to="/customer-portal" className="text-gray-400 hover:text-white">Submit a Ticket</Link></li>
+                  <li><Link to="/submit-ticket" className="text-gray-400 hover:text-white">Submit a Ticket</Link></li>
                 </ul>
               </div>
             </div>

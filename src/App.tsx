@@ -14,6 +14,7 @@ import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import NotFound from "@/pages/NotFound";
+import SubmitTicket from "@/pages/SubmitTicket";
 
 // Authenticated Pages
 import Dashboard from "@/pages/Dashboard";
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/submit-ticket" element={<SubmitTicket />} />
 
             {/* Protected Routes */}
             <Route element={<PrivateRoute />}>
