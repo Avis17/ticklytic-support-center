@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -19,52 +19,133 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Search, Tag, BookOpen, Book } from "lucide-react";
+import { db } from "@/lib/firebase";
+import { collection, query, getDocs, where, orderBy } from "firebase/firestore";
+import { useToast } from "@/components/ui/use-toast";
 
-const DUMMY_ARTICLES = [
-  {
-    id: "1",
-    title: "Getting Started with Ticklytic",
-    category: "Guides",
-    description: "Learn how to set up and use the Ticklytic system",
-    tags: ["beginner", "setup", "onboarding"],
-  },
-  {
-    id: "2",
-    title: "Managing Ticket Categories",
-    category: "Admin",
-    description: "How to create and organize your ticket categories",
-    tags: ["categories", "admin", "organization"],
-  },
-  {
-    id: "3",
-    title: "Agent Best Practices",
-    category: "Agents",
-    description: "Tips and tricks for efficient ticket handling",
-    tags: ["agent", "productivity", "support"],
-  },
-  {
-    id: "4",
-    title: "Ticket Priority Explained",
-    category: "Guides",
-    description: "Understanding how ticket priorities work",
-    tags: ["priority", "workflow", "triage"],
-  },
-  {
-    id: "5",
-    title: "Reporting Capabilities",
-    category: "Reports",
-    description: "Overview of available reports and metrics",
-    tags: ["reports", "metrics", "analytics"],
-  },
-];
-
-const CATEGORIES = ["All", "Guides", "Admin", "Agents", "Reports", "Troubleshooting"];
+interface KBArticle {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  tags: string[];
+}
 
 const KnowledgeBase: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [articles, setArticles] = useState<KBArticle[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const filteredArticles = DUMMY_ARTICLES.filter((article) => {
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        setLoading(true);
+        const articlesRef = collection(db, "knowledge_base");
+        const articlesQuery = query(articlesRef, orderBy("title"));
+        const snapshot = await getDocs(articlesQuery);
+        
+        const fetchedArticles: KBArticle[] = [];
+        const categoriesSet = new Set<string>();
+        categoriesSet.add("All"); // Always include "All" category
+        
+        snapshot.forEach((doc) => {
+          const data = doc.data() as Omit<KBArticle, "id">;
+          fetchedArticles.push({
+            id: doc.id,
+            title: data.title,
+            category: data.category,
+            description: data.description,
+            tags: data.tags || [],
+          });
+          
+          if (data.category) {
+            categoriesSet.add(data.category);
+          }
+        });
+        
+        setArticles(fetchedArticles);
+        setCategories(Array.from(categoriesSet));
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching knowledge base articles:", error);
+        toast({
+          variant: "destructive",
+          title: "Failed to load articles",
+          description: "Please try refreshing the page.",
+        });
+        setLoading(false);
+      }
+    };
+
+    // If the knowledge_base collection doesn't exist or is empty, seed it with dummy data
+    // This is for demonstration purposes in a new setup
+    const seedKnowledgeBase = async () => {
+      try {
+        const articlesRef = collection(db, "knowledge_base");
+        const snapshot = await getDocs(articlesRef);
+        
+        if (snapshot.empty) {
+          const DUMMY_ARTICLES = [
+            {
+              title: "Getting Started with Ticklytic",
+              category: "Guides",
+              description: "Learn how to set up and use the Ticklytic system",
+              tags: ["beginner", "setup", "onboarding"],
+            },
+            {
+              title: "Managing Ticket Categories",
+              category: "Admin",
+              description: "How to create and organize your ticket categories",
+              tags: ["categories", "admin", "organization"],
+            },
+            {
+              title: "Agent Best Practices",
+              category: "Agents",
+              description: "Tips and tricks for efficient ticket handling",
+              tags: ["agent", "productivity", "support"],
+            },
+            {
+              title: "Ticket Priority Explained",
+              category: "Guides",
+              description: "Understanding how ticket priorities work",
+              tags: ["priority", "workflow", "triage"],
+            },
+            {
+              title: "Reporting Capabilities",
+              category: "Reports",
+              description: "Overview of available reports and metrics",
+              tags: ["reports", "metrics", "analytics"],
+            },
+          ];
+
+          // Add dummy articles to the database
+          const batch = db.batch();
+          DUMMY_ARTICLES.forEach(article => {
+            const newDocRef = collection(db, "knowledge_base");
+            // We intentionally don't await this to avoid slowing down the component
+            batch.set(newDocRef.doc(), article);
+          });
+          await batch.commit();
+          console.log("Knowledge base seeded with sample data");
+          
+          // After seeding, fetch the articles
+          fetchArticles();
+        } else {
+          fetchArticles();
+        }
+      } catch (error) {
+        console.error("Error seeding knowledge base:", error);
+        fetchArticles(); // Try to fetch articles anyway
+      }
+    };
+    
+    seedKnowledgeBase();
+  }, [toast]);
+
+  const filteredArticles = articles.filter((article) => {
     const matchesSearch = 
       article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       article.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -74,6 +155,17 @@ const KnowledgeBase: React.FC = () => {
 
     return matchesSearch && matchesCategory;
   });
+
+  // Get most viewed articles (in a real app, you'd track views in the database)
+  const popularArticles = [...articles].sort(() => 0.5 - Math.random()).slice(0, 3);
+
+  // Count articles by category
+  const categoryCount = categories.reduce((acc, category) => {
+    if (category === "All") return acc;
+    
+    acc[category] = articles.filter(article => article.category === category).length;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <div className="space-y-8">
@@ -97,19 +189,37 @@ const KnowledgeBase: React.FC = () => {
           </div>
 
           <div className="flex overflow-x-auto pb-2 space-x-2">
-            {CATEGORIES.map((category) => (
-              <Button
-                key={category}
-                variant={selectedCategory === category ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(category)}
-              >
-                {category}
-              </Button>
-            ))}
+            {loading ? (
+              <div className="w-full py-4 text-center text-muted-foreground">Loading categories...</div>
+            ) : (
+              categories.map((category) => (
+                <Button
+                  key={category}
+                  variant={selectedCategory === category ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory(category)}
+                >
+                  {category}
+                </Button>
+              ))
+            )}
           </div>
 
-          {filteredArticles.length > 0 ? (
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <div className="h-5 w-1/3 bg-muted rounded"></div>
+                    <div className="h-4 w-2/3 bg-muted rounded"></div>
+                  </CardHeader>
+                  <CardFooter>
+                    <div className="h-4 w-1/4 bg-muted rounded"></div>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          ) : filteredArticles.length > 0 ? (
             <div className="space-y-4">
               {filteredArticles.map((article) => (
                 <Card key={article.id}>
@@ -166,7 +276,19 @@ const KnowledgeBase: React.FC = () => {
               <CardDescription>Most frequently viewed resources</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {DUMMY_ARTICLES.slice(0, 3).map((article) => (
+              {loading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="w-4 h-4 rounded-full bg-muted"></div>
+                      <div className="space-y-1 flex-1">
+                        <div className="h-4 bg-muted rounded w-3/4"></div>
+                        <div className="h-3 bg-muted rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : popularArticles.map((article) => (
                 <div key={article.id} className="flex items-start gap-3">
                   <BookOpen className="h-4 w-4 mt-1 text-muted-foreground" />
                   <div>
@@ -190,26 +312,32 @@ const KnowledgeBase: React.FC = () => {
               <CardTitle>Categories</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {["Guides", "Admin", "Agents", "Reports", "Troubleshooting"].map(
-                (category) => (
-                  <div
-                    key={category}
-                    className="flex justify-between items-center"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Book className="h-4 w-4 text-muted-foreground" />
-                      <span>{category}</span>
+              {loading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-muted rounded"></div>
+                        <div className="h-4 bg-muted rounded w-20"></div>
+                      </div>
+                      <div className="h-4 w-6 bg-muted rounded"></div>
                     </div>
-                    <Badge variant="secondary">
-                      {
-                        DUMMY_ARTICLES.filter(
-                          (article) => article.category === category
-                        ).length
-                      }
-                    </Badge>
+                  ))}
+                </div>
+              ) : categories.filter(c => c !== "All").map((category) => (
+                <div
+                  key={category}
+                  className="flex justify-between items-center"
+                >
+                  <div className="flex items-center gap-2">
+                    <Book className="h-4 w-4 text-muted-foreground" />
+                    <span>{category}</span>
                   </div>
-                )
-              )}
+                  <Badge variant="secondary">
+                    {categoryCount[category] || 0}
+                  </Badge>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>

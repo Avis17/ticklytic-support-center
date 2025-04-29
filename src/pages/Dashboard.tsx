@@ -7,58 +7,169 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardStats } from "@/types";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, Timestamp, orderBy, limit, getCountFromServer } from "firebase/firestore";
 import { AreaChart, BarChart, PieChart } from "@/components/ui/charts";
 import { Badge } from "@/components/ui/badge";
 import { ArrowUp, ArrowDown, Clock } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
-    openTickets: 25,
-    resolvedTickets: 102,
-    slaBreached: 2,
-    avgResponseTime: 2.5,
+    openTickets: 0,
+    resolvedTickets: 0,
+    slaBreached: 0,
+    avgResponseTime: 0,
     ticketsByPriority: {
-      low: 8,
-      normal: 32,
-      high: 15,
-      critical: 5,
+      low: 0,
+      normal: 0,
+      high: 0,
+      critical: 0,
     },
     ticketsByCategory: {
-      "Technical": 23,
-      "Billing": 14,
-      "Feature Request": 9,
-      "General": 14,
+      "Technical": 0,
+      "Billing": 0,
+      "Feature Request": 0,
+      "General": 0,
     },
     ticketsTrend: [
-      { date: "Mon", count: 12 },
-      { date: "Tue", count: 18 },
-      { date: "Wed", count: 15 },
-      { date: "Thu", count: 25 },
-      { date: "Fri", count: 20 },
-      { date: "Sat", count: 10 },
-      { date: "Sun", count: 5 },
+      { date: "Mon", count: 0 },
+      { date: "Tue", count: 0 },
+      { date: "Wed", count: 0 },
+      { date: "Thu", count: 0 },
+      { date: "Fri", count: 0 },
+      { date: "Sat", count: 0 },
+      { date: "Sun", count: 0 },
     ],
   });
 
   useEffect(() => {
-    // This is a placeholder for actual data fetching
-    // In a production app, you would fetch real data from Firestore here
-    // Example:
-    // const fetchDashboardStats = async () => {
-    //   const ticketsRef = collection(db, "tickets");
-    //   const openTicketsQuery = query(ticketsRef, where("status", "in", ["open", "in_progress"]));
-    //   const openTicketsSnapshot = await getDocs(openTicketsQuery);
-    //   const openTicketsCount = openTicketsSnapshot.docs.length;
-    //   // ... fetch other stats
-    //   setStats({...});
-    // };
-    // fetchDashboardStats();
+    const fetchDashboardStats = async () => {
+      try {
+        setLoading(true);
+        const ticketsRef = collection(db, "tickets");
+        
+        // Fetch open tickets count
+        const openTicketsQuery = query(ticketsRef, where("status", "in", ["open", "in_progress"]));
+        const openTicketsSnapshot = await getCountFromServer(openTicketsQuery);
+        const openTicketsCount = openTicketsSnapshot.data().count;
+        
+        // Fetch resolved tickets count
+        const resolvedTicketsQuery = query(ticketsRef, where("status", "==", "resolved"));
+        const resolvedTicketsSnapshot = await getCountFromServer(resolvedTicketsQuery);
+        const resolvedTicketsCount = resolvedTicketsSnapshot.data().count;
+        
+        // Fetch SLA breached tickets
+        const slaBreachedQuery = query(ticketsRef, where("slaBreached", "==", true));
+        const slaBreachedSnapshot = await getCountFromServer(slaBreachedQuery);
+        const slaBreachedCount = slaBreachedSnapshot.data().count;
+        
+        // Calculate average response time
+        // This is a simplified approach - in production, you would calculate this based on actual response timestamps
+        const allTicketsQuery = query(ticketsRef, limit(100));
+        const allTicketsSnapshot = await getDocs(allTicketsQuery);
+        let totalResponseTime = 0;
+        let ticketsWithResponseTime = 0;
+        
+        allTicketsSnapshot.forEach(doc => {
+          const ticket = doc.data();
+          if (ticket.responseTime) {
+            totalResponseTime += ticket.responseTime;
+            ticketsWithResponseTime++;
+          }
+        });
+        
+        const avgResponseTime = ticketsWithResponseTime > 0 
+          ? +(totalResponseTime / ticketsWithResponseTime).toFixed(1) 
+          : 0;
+        
+        // Fetch tickets by priority
+        const priorityTypes = ["low", "normal", "high", "critical"];
+        const ticketsByPriority: Record<string, number> = {
+          low: 0,
+          normal: 0,
+          high: 0,
+          critical: 0,
+        };
+        
+        for (const priority of priorityTypes) {
+          const priorityQuery = query(ticketsRef, where("priority", "==", priority));
+          const prioritySnapshot = await getCountFromServer(priorityQuery);
+          ticketsByPriority[priority] = prioritySnapshot.data().count;
+        }
+        
+        // Fetch tickets by category
+        const categories = ["Technical", "Billing", "Feature Request", "General"];
+        const ticketsByCategory: Record<string, number> = {
+          "Technical": 0,
+          "Billing": 0,
+          "Feature Request": 0,
+          "General": 0,
+        };
+        
+        for (const category of categories) {
+          const categoryQuery = query(ticketsRef, where("category", "==", category));
+          const categorySnapshot = await getCountFromServer(categoryQuery);
+          ticketsByCategory[category] = categorySnapshot.data().count;
+        }
+        
+        // Fetch tickets trend for last 7 days
+        const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        let ticketsTrend = [];
+        
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date();
+          date.setHours(0, 0, 0, 0);
+          date.setDate(date.getDate() - i);
+          
+          const nextDate = new Date(date);
+          nextDate.setDate(nextDate.getDate() + 1);
+          
+          const startTime = Timestamp.fromDate(date);
+          const endTime = Timestamp.fromDate(nextDate);
+          
+          const dayQuery = query(
+            ticketsRef, 
+            where("createdAt", ">=", startTime), 
+            where("createdAt", "<", endTime)
+          );
+          
+          const daySnapshot = await getCountFromServer(dayQuery);
+          const dayName = days[date.getDay()];
+          
+          ticketsTrend.push({
+            date: dayName,
+            count: daySnapshot.data().count
+          });
+        }
+        
+        setStats({
+          openTickets: openTicketsCount,
+          resolvedTickets: resolvedTicketsCount,
+          slaBreached: slaBreachedCount,
+          avgResponseTime,
+          ticketsByPriority,
+          ticketsByCategory,
+          ticketsTrend,
+        });
+        
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+        toast({
+          variant: "destructive",
+          title: "Failed to load dashboard data",
+          description: "Please try refreshing the page."
+        });
+        setLoading(false);
+      }
+    };
 
-    // For now, we're using the mock data initialized above
-  }, []);
+    fetchDashboardStats();
+  }, [toast]);
 
   const chartConfig = {
     ticketTrend: {
@@ -105,7 +216,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline justify-between">
-              <div className="text-3xl font-bold">{stats.openTickets}</div>
+              <div className="text-3xl font-bold">{loading ? "..." : stats.openTickets}</div>
               <Badge variant="outline" className="flex items-center">
                 <ArrowUp className="mr-1 h-4 w-4 text-emerald-500" />
                 8.2%
@@ -122,7 +233,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline justify-between">
-              <div className="text-3xl font-bold">{stats.resolvedTickets}</div>
+              <div className="text-3xl font-bold">{loading ? "..." : stats.resolvedTickets}</div>
               <Badge variant="outline" className="flex items-center">
                 <ArrowUp className="mr-1 h-4 w-4 text-emerald-500" />
                 12%
@@ -139,7 +250,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline justify-between">
-              <div className="text-3xl font-bold">{stats.slaBreached}</div>
+              <div className="text-3xl font-bold">{loading ? "..." : stats.slaBreached}</div>
               <Badge variant="outline" className="flex items-center">
                 <ArrowDown className="mr-1 h-4 w-4 text-red-500" />
                 3.1%
@@ -156,7 +267,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline justify-between">
-              <div className="text-3xl font-bold">{stats.avgResponseTime}h</div>
+              <div className="text-3xl font-bold">{loading ? "..." : `${stats.avgResponseTime}h`}</div>
               <Badge variant="outline" className="flex items-center">
                 <Clock className="mr-1 h-4 w-4 text-amber-500" />
                 Same
@@ -178,17 +289,23 @@ const Dashboard = () => {
               <CardTitle>Ticket Trend (Last 7 Days)</CardTitle>
             </CardHeader>
             <CardContent>
-              <AreaChart
-                height={350}
-                data={chartConfig.ticketTrend.data}
-                index="name"
-                categories={chartConfig.ticketTrend.categories}
-                colors={chartConfig.ticketTrend.colors}
-                valueFormatter={chartConfig.ticketTrend.valueFormatter}
-                showLegend={chartConfig.ticketTrend.showLegend}
-                showXAxis
-                showYAxis
-              />
+              {loading ? (
+                <div className="flex items-center justify-center h-[350px] bg-muted/20">
+                  <p className="text-muted-foreground">Loading chart data...</p>
+                </div>
+              ) : (
+                <AreaChart
+                  height={350}
+                  data={chartConfig.ticketTrend.data}
+                  index="name"
+                  categories={chartConfig.ticketTrend.categories}
+                  colors={chartConfig.ticketTrend.colors}
+                  valueFormatter={chartConfig.ticketTrend.valueFormatter}
+                  showLegend={chartConfig.ticketTrend.showLegend}
+                  showXAxis
+                  showYAxis
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -198,13 +315,19 @@ const Dashboard = () => {
               <CardTitle>Tickets by Priority</CardTitle>
             </CardHeader>
             <CardContent>
-              <PieChart
-                height={300}
-                data={chartConfig.ticketsByPriority.data}
-                index="name"
-                valueFormatter={chartConfig.ticketsByPriority.valueFormatter}
-                colors={chartConfig.ticketsByPriority.colors}
-              />
+              {loading ? (
+                <div className="flex items-center justify-center h-[300px] bg-muted/20">
+                  <p className="text-muted-foreground">Loading chart data...</p>
+                </div>
+              ) : (
+                <PieChart
+                  height={300}
+                  data={chartConfig.ticketsByPriority.data}
+                  index="name"
+                  valueFormatter={chartConfig.ticketsByPriority.valueFormatter}
+                  colors={chartConfig.ticketsByPriority.colors}
+                />
+              )}
             </CardContent>
           </Card>
           <Card>
@@ -212,17 +335,23 @@ const Dashboard = () => {
               <CardTitle>Tickets by Category</CardTitle>
             </CardHeader>
             <CardContent>
-              <BarChart
-                height={300}
-                data={chartConfig.ticketsByCategory.data}
-                index="name"
-                categories={["value"]}
-                colors={["#6A5ACD"]}
-                valueFormatter={chartConfig.ticketsByCategory.valueFormatter}
-                showLegend={false}
-                showXAxis
-                showYAxis
-              />
+              {loading ? (
+                <div className="flex items-center justify-center h-[300px] bg-muted/20">
+                  <p className="text-muted-foreground">Loading chart data...</p>
+                </div>
+              ) : (
+                <BarChart
+                  height={300}
+                  data={chartConfig.ticketsByCategory.data}
+                  index="name"
+                  categories={["value"]}
+                  colors={["#6A5ACD"]}
+                  valueFormatter={chartConfig.ticketsByCategory.valueFormatter}
+                  showLegend={false}
+                  showXAxis
+                  showYAxis
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>

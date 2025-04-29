@@ -38,6 +38,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/use-toast";
+import { db } from "@/lib/firebase";
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  updateDoc, 
+  doc, 
+  deleteDoc,
+  Timestamp,
+  orderBy
+} from "firebase/firestore";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Notification {
   id: string;
@@ -52,82 +65,117 @@ interface Notification {
   };
 }
 
-const DUMMY_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    title: "New Ticket Assigned",
-    message: "Ticket #TK-2023 has been assigned to you",
-    type: "info",
-    isRead: false,
-    timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-    relatedTo: {
-      type: "ticket",
-      id: "TK-2023"
-    }
-  },
-  {
-    id: "2",
-    title: "Urgent Ticket Requires Attention",
-    message: "Critical ticket #TK-2019 has been waiting for response for 2 hours",
-    type: "warning",
-    isRead: false,
-    timestamp: new Date(Date.now() - 1000 * 60 * 120), // 2 hours ago
-    relatedTo: {
-      type: "ticket",
-      id: "TK-2019"
-    }
-  },
-  {
-    id: "3",
-    title: "Ticket Resolved",
-    message: "You resolved ticket #TK-2018. Good job!",
-    type: "success",
-    isRead: true,
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5), // 5 hours ago
-    relatedTo: {
-      type: "ticket",
-      id: "TK-2018"
-    }
-  },
-  {
-    id: "4",
-    title: "New Agent Added",
-    message: "Sarah Johnson has joined the support team as an agent",
-    type: "info",
-    isRead: true,
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-    relatedTo: {
-      type: "agent",
-      id: "AG-2023"
-    }
-  },
-  {
-    id: "5",
-    title: "System Maintenance",
-    message: "The system will be down for maintenance on Sunday, April 30th from 2AM to 4AM",
-    type: "error",
-    isRead: false,
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48), // 2 days ago
-  },
-  {
-    id: "6",
-    title: "New Knowledge Base Article",
-    message: "New article 'Troubleshooting Common Issues' has been published",
-    type: "info",
-    isRead: false,
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 72), // 3 days ago
-    relatedTo: {
-      type: "article",
-      id: "ART-123"
-    }
-  },
-];
-
 const Notifications: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>(DUMMY_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { currentUser } = useAuth();
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+    if (!currentUser) return;
+    
+    try {
+      setLoading(true);
+      
+      const notificationsRef = collection(db, "notifications");
+      const notificationsQuery = query(
+        notificationsRef,
+        where("userId", "==", currentUser.uid),
+        orderBy("timestamp", "desc")
+      );
+      
+      const querySnapshot = await getDocs(notificationsQuery);
+      
+      const fetchedNotifications: Notification[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        fetchedNotifications.push({
+          id: doc.id,
+          title: data.title,
+          message: data.message,
+          type: data.type,
+          isRead: data.isRead,
+          timestamp: data.timestamp.toDate(),
+          relatedTo: data.relatedTo,
+        });
+      });
+      
+      setNotifications(fetchedNotifications);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to load notifications",
+        description: "Please try refreshing the page.",
+      });
+      setLoading(false);
+      
+      // If we couldn't fetch from Firebase, seed with sample data for demo
+      seedSampleNotifications();
+    }
+  };
+
+  const seedSampleNotifications = () => {
+    const SAMPLE_NOTIFICATIONS: Notification[] = [
+      {
+        id: "1",
+        title: "New Ticket Assigned",
+        message: "Ticket #TK-2023 has been assigned to you",
+        type: "info",
+        isRead: false,
+        timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+        relatedTo: {
+          type: "ticket",
+          id: "TK-2023"
+        }
+      },
+      {
+        id: "2",
+        title: "Urgent Ticket Requires Attention",
+        message: "Critical ticket #TK-2019 has been waiting for response for 2 hours",
+        type: "warning",
+        isRead: false,
+        timestamp: new Date(Date.now() - 1000 * 60 * 120), // 2 hours ago
+        relatedTo: {
+          type: "ticket",
+          id: "TK-2019"
+        }
+      },
+      {
+        id: "3",
+        title: "Ticket Resolved",
+        message: "You resolved ticket #TK-2018. Good job!",
+        type: "success",
+        isRead: true,
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5), // 5 hours ago
+        relatedTo: {
+          type: "ticket",
+          id: "TK-2018"
+        }
+      },
+      {
+        id: "4",
+        title: "New Agent Added",
+        message: "Sarah Johnson has joined the support team as an agent",
+        type: "info",
+        isRead: true,
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
+        relatedTo: {
+          type: "agent",
+          id: "AG-2023"
+        }
+      }
+    ];
+    
+    setNotifications(SAMPLE_NOTIFICATIONS);
+    setLoading(false);
+  };
 
   const filteredNotifications = notifications.filter((notification) => {
     if (filter === 'all') return true;
@@ -138,53 +186,133 @@ const Notifications: React.FC = () => {
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  const markAsRead = (id: string) => {
-    setNotifications(
-      notifications.map((notification) =>
-        notification.id === id
-          ? { ...notification, isRead: true }
-          : notification
-      )
-    );
-    toast({
-      description: "Notification marked as read",
-    });
+  const markAsRead = async (id: string) => {
+    try {
+      // Update in Firebase
+      if (currentUser) {
+        const notificationRef = doc(db, "notifications", id);
+        await updateDoc(notificationRef, { isRead: true });
+      }
+      
+      // Update local state
+      setNotifications(
+        notifications.map((notification) =>
+          notification.id === id
+            ? { ...notification, isRead: true }
+            : notification
+        )
+      );
+      
+      toast({
+        description: "Notification marked as read",
+      });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to update notification",
+        description: "Please try again.",
+      });
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(
-      notifications.map((notification) => ({ ...notification, isRead: true }))
-    );
-    toast({
-      description: "All notifications marked as read",
-    });
+  const markAllAsRead = async () => {
+    try {
+      // Update in Firebase - only if authenticated
+      if (currentUser) {
+        const batch = db.batch();
+        
+        notifications.forEach(notification => {
+          if (!notification.isRead) {
+            const notificationRef = doc(db, "notifications", notification.id);
+            batch.update(notificationRef, { isRead: true });
+          }
+        });
+        
+        await batch.commit();
+      }
+      
+      // Update local state
+      setNotifications(
+        notifications.map((notification) => ({ ...notification, isRead: true }))
+      );
+      
+      toast({
+        description: "All notifications marked as read",
+      });
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to update notifications",
+        description: "Please try again.",
+      });
+    }
   };
 
-  const deleteNotification = (id: string) => {
-    setNotifications(
-      notifications.filter((notification) => notification.id !== id)
-    );
-    toast({
-      description: "Notification deleted",
-    });
+  const deleteNotification = async (id: string) => {
+    try {
+      // Delete from Firebase if authenticated
+      if (currentUser) {
+        const notificationRef = doc(db, "notifications", id);
+        await deleteDoc(notificationRef);
+      }
+      
+      // Update local state
+      setNotifications(
+        notifications.filter((notification) => notification.id !== id)
+      );
+      
+      toast({
+        description: "Notification deleted",
+      });
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to delete notification",
+        description: "Please try again.",
+      });
+    }
   };
 
-  const clearAllNotifications = () => {
-    setNotifications([]);
-    toast({
-      description: "All notifications cleared",
-    });
+  const clearAllNotifications = async () => {
+    try {
+      // Delete all from Firebase if authenticated
+      if (currentUser) {
+        const batch = db.batch();
+        
+        notifications.forEach(notification => {
+          const notificationRef = doc(db, "notifications", notification.id);
+          batch.delete(notificationRef);
+        });
+        
+        await batch.commit();
+      }
+      
+      // Update local state
+      setNotifications([]);
+      
+      toast({
+        description: "All notifications cleared",
+      });
+    } catch (error) {
+      console.error("Error clearing all notifications:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to clear notifications",
+        description: "Please try again.",
+      });
+    }
   };
 
   const refreshNotifications = () => {
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      toast({
-        description: "Notifications refreshed",
-      });
-    }, 1000);
+    fetchNotifications();
+    
+    toast({
+      description: "Notifications refreshed",
+    });
   };
 
   const formatTimestamp = (date: Date) => {
@@ -283,7 +411,19 @@ const Notifications: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {filteredNotifications.length > 0 ? (
+          {loading ? (
+            <div className="space-y-4 animate-pulse">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex gap-4 p-4 rounded-md bg-muted/20">
+                  <div className="w-6 h-6 rounded-full bg-muted"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-muted rounded w-1/3"></div>
+                    <div className="h-3 bg-muted rounded w-2/3"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredNotifications.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
