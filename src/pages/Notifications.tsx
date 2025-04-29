@@ -48,7 +48,8 @@ import {
   doc, 
   deleteDoc,
   Timestamp,
-  orderBy
+  orderBy,
+  writeBatch
 } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -220,7 +221,7 @@ const Notifications: React.FC = () => {
     try {
       // Update in Firebase - only if authenticated
       if (currentUser) {
-        const batch = db.batch();
+        const batch = writeBatch(db);
         
         notifications.forEach(notification => {
           if (!notification.isRead) {
@@ -280,7 +281,7 @@ const Notifications: React.FC = () => {
     try {
       // Delete all from Firebase if authenticated
       if (currentUser) {
-        const batch = db.batch();
+        const batch = writeBatch(db);
         
         notifications.forEach(notification => {
           const notificationRef = doc(db, "notifications", notification.id);

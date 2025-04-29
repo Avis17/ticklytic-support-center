@@ -20,7 +20,16 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Search, Tag, BookOpen, Book } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, query, getDocs, where, orderBy } from "firebase/firestore";
+import { 
+  collection, 
+  query, 
+  getDocs, 
+  where, 
+  orderBy, 
+  doc, 
+  writeBatch,
+  addDoc
+} from "firebase/firestore";
 import { useToast } from "@/components/ui/use-toast";
 
 interface KBArticle {
@@ -122,11 +131,10 @@ const KnowledgeBase: React.FC = () => {
           ];
 
           // Add dummy articles to the database
-          const batch = db.batch();
+          const batch = writeBatch(db);
           DUMMY_ARTICLES.forEach(article => {
-            const newDocRef = collection(db, "knowledge_base");
-            // We intentionally don't await this to avoid slowing down the component
-            batch.set(newDocRef.doc(), article);
+            const newDocRef = doc(collection(db, "knowledge_base"));
+            batch.set(newDocRef, article);
           });
           await batch.commit();
           console.log("Knowledge base seeded with sample data");
